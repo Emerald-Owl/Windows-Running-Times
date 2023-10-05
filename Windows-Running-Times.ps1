@@ -56,12 +56,13 @@ $eventsEventLog = Get-WinEvent -FilterHashtable @{
     EndTime=$endDateTime;
 } -ErrorAction SilentlyContinue
 
+$events = @()
 $systemActivity = @()
 $startEvent = $null
 $shutdownEvent = $null
 
 # Combine all the events and sort them
-$events = $eventsKernelPower + $eventsPowerTroubleshooter + $eventsUser32 + $eventsEventLog | Sort-Object TimeCreated
+$events = [array]$eventsKernelPower + [array]$eventsPowerTroubleshooter + [array]$eventsUser32 + [array]$eventsEventLog | Sort-Object TimeCreated
 
 foreach ($event in $events) {
     switch ($event.Id) {
