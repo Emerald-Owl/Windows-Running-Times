@@ -1,17 +1,27 @@
-function Format-Duration {
-    param ([TimeSpan]$duration)
-    return "{0} Days, {1:D2}:{2:D2}:{3:D2}" -f $duration.Days, $duration.Hours, $duration.Minutes, $duration.Seconds
-}
+# Collect params, start/end date, and how many events to grab. 
+# Defaults to 99999 events and anything from 01/01/1980 to the day after execution 
+param(
+    [string]$startDate = "01/01/1980",
+    [string]$endDate = ((Get-Date).AddDays(1)).ToString("MM/dd/yyyy")
+)
 
 $systemActivity = @()
 $startEvent = $null
 $shutdownEvent = $null
+
+
+function Format-Duration {
+    param ([TimeSpan]$duration)
+    return "{0} Days, {1:D2}:{2:D2}:{3:D2}" -f $duration.Days, $duration.Hours, $duration.Minutes, $duration.Seconds
+}
 
 # Get events with Provider 'Microsoft-Windows-Kernel-Power' and EventID 41 or 42
 $eventsKernelPower = Get-WinEvent -FilterHashtable @{
     LogName = 'System'
     ProviderName = 'Microsoft-Windows-Kernel-Power'
     Id = 41,42
+    StartTime=$startDateTime;
+    EndTime=$endDateTime;
 }
 
 # Get events with Provider 'Microsoft-Windows-Power-Troubleshooter' and EventID 1
@@ -19,6 +29,8 @@ $eventsPowerTroubleshooter = Get-WinEvent -FilterHashtable @{
     LogName = 'System'
     ProviderName = 'Microsoft-Windows-Power-Troubleshooter'
     Id = 1
+    StartTime=$startDateTime;
+    EndTime=$endDateTime;
 }
 
 # Get events with Provider 'USER32' and EventID 1074
@@ -26,6 +38,8 @@ $eventsUser32 = Get-WinEvent -FilterHashtable @{
     LogName = 'System'
     ProviderName = 'USER32'
     Id = 1074
+    StartTime=$startDateTime;
+    EndTime=$endDateTime;
 }
 
 # Get events with Provider 'EventLog' and EventID 6005 or 6006
@@ -33,6 +47,8 @@ $eventsEventLog = Get-WinEvent -FilterHashtable @{
     LogName = 'System'
     ProviderName = 'EventLog'
     Id = 6005, 6006
+    StartTime=$startDateTime;
+    EndTime=$endDateTime;
 }
 
 # Combine all the events and sort them
