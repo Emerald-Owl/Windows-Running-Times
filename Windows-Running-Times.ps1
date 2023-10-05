@@ -5,10 +5,15 @@ param(
     [string]$endDate = ((Get-Date).AddDays(1)).ToString("MM/dd/yyyy")
 )
 
-$systemActivity = @()
-$startEvent = $null
-$shutdownEvent = $null
-
+# Check for MM/dd/yyyy formatting of the start date param
+try {
+    $startDateTime = [datetime]::ParseExact($startDate, "MM/dd/yyyy", $null)
+    $endDateTime = [datetime]::ParseExact($endDate, "MM/dd/yyyy", $null)
+} 
+catch {
+    Write-Host "Invalid date format. Please use MM/dd/yyyy." -ForegroundColor Red
+    return
+}
 
 function Format-Duration {
     param ([TimeSpan]$duration)
@@ -17,39 +22,43 @@ function Format-Duration {
 
 # Get events with Provider 'Microsoft-Windows-Kernel-Power' and EventID 41 or 42
 $eventsKernelPower = Get-WinEvent -FilterHashtable @{
-    LogName = 'System'
-    ProviderName = 'Microsoft-Windows-Kernel-Power'
-    Id = 41,42
+    LogName = 'System';
+    ProviderName = 'Microsoft-Windows-Kernel-Power';
+    Id = 41,42;
     StartTime=$startDateTime;
     EndTime=$endDateTime;
 }
 
 # Get events with Provider 'Microsoft-Windows-Power-Troubleshooter' and EventID 1
 $eventsPowerTroubleshooter = Get-WinEvent -FilterHashtable @{
-    LogName = 'System'
-    ProviderName = 'Microsoft-Windows-Power-Troubleshooter'
-    Id = 1
+    LogName = 'System';
+    ProviderName = 'Microsoft-Windows-Power-Troubleshooter';
+    Id = 1;
     StartTime=$startDateTime;
     EndTime=$endDateTime;
 }
 
 # Get events with Provider 'USER32' and EventID 1074
 $eventsUser32 = Get-WinEvent -FilterHashtable @{
-    LogName = 'System'
-    ProviderName = 'USER32'
-    Id = 1074
+    LogName = 'System';
+    ProviderName = 'USER32';
+    Id = 1074;
     StartTime=$startDateTime;
     EndTime=$endDateTime;
 }
 
 # Get events with Provider 'EventLog' and EventID 6005 or 6006
 $eventsEventLog = Get-WinEvent -FilterHashtable @{
-    LogName = 'System'
-    ProviderName = 'EventLog'
-    Id = 6005, 6006
+    LogName = 'System';
+    ProviderName = 'EventLog';
+    Id = 6005, 6006;
     StartTime=$startDateTime;
     EndTime=$endDateTime;
 }
+
+$systemActivity = @()
+$startEvent = $null
+$shutdownEvent = $null
 
 # Combine all the events and sort them
 $events = $eventsKernelPower + $eventsPowerTroubleshooter + $eventsUser32 + $eventsEventLog | Sort-Object TimeCreated
