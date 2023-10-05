@@ -1,21 +1,61 @@
-# Fetch the specific events from the System event log
-$events = Get-WinEvent -LogName 'System' -FilterXPath "*[(System[Provider[@Name='Microsoft-Windows-Kernel-Power'] 
-and (EventID=41 or EventID=42)]) or (System[Provider[@Name='Microsoft-Windows-Power-Troubleshooter'] and EventID=1]) 
-or (System[Provider[@Name='USER32'] and EventID=1074]) or (System[Provider[@Name='EventLog'] and (EventID=6005 or EventID=6006)])]" | Sort-Object TimeCreated
-
-$systemActivity = @()
-$startEvent = $null
-$shutdownEvent = $null
-
 function Format-Duration {
     param ([TimeSpan]$duration)
     return "{0} Days, {1:D2}:{2:D2}:{3:D2}" -f $duration.Days, $duration.Hours, $duration.Minutes, $duration.Seconds
 }
 
+$systemActivity = @()
+$startEvent = $null
+$shutdownEvent = $null
+
+# Get events with Provider 'Microsoft-Windows-Kernel-Power' and EventID 41 or 42
+$eventsKernelPower = Get-WinEvent -FilterHashtable @{
+    LogName = 'System'
+    ProviderName = 'Microsoft-Windows-Kernel-Power'
+    Id = 41,42
+}
+
+# Get events with Provider 'Microsoft-Windows-Power-Troubleshooter' and EventID 1
+$eventsPowerTroubleshooter = Get-WinEvent -FilterHashtable @{
+    LogName = 'System'
+    ProviderName = 'Microsoft-Windows-Power-Troubleshooter'
+    Id = 1
+}
+
+# Get events with Provider 'USER32' and EventID 1074
+$eventsUser32 = Get-WinEvent -FilterHashtable @{
+    LogName = 'System'
+    ProviderName = 'USER32'
+    Id = 1074
+}
+
+# Get events with Provider 'EventLog' and EventID 6005 or 6006
+$eventsEventLog = Get-WinEvent -FilterHashtable @{
+    LogName = 'System'
+    ProviderName = 'EventLog'
+    Id = 6005, 6006
+}
+
+# Combine all the events and sort them
+$events = $eventsKernelPower + $eventsPowerTroubleshooter + $eventsUser32 + $eventsEventLog | Sort-Object TimeCreated
+
 foreach ($event in $events) {
     switch ($event.Id) {
-        # Startups 
-        {($_ -eq 1) -or ($_ -eq 41) -or ($_ -eq 6005)} {
+        # 41: Unexpected Shutdown
+        41 {
+            if ($startEvent) {
+                $systemActivity += [PSCustomObject]@{
+                    StartTime    = $startEvent.TimeCreated.ToUniversalTime()
+                    ShutdownTime = $null
+                    Duration     = "Unknown"
+                    ShutdownType = "Unexpected Shutdown!"
+                }
+                $startEvent = $null
+                $shutdownEvent = $null
+            }
+        }
+        # 1: Wake from sleep
+        # 6005: Event Log service started
+        {($_ -eq 1) -or ($_ -eq 6005)} {
             if ($startEvent) {
                 if ($event.TimeCreated - $startEvent.TimeCreated -lt [TimeSpan]::FromMinutes(1)) {
                     continue
@@ -30,11 +70,23 @@ foreach ($event in $events) {
             $startEvent = $event
             $shutdownEvent = $null
         }
-        # Shutdowns
+        # 42: Entering sleep
+        # 1074: Process initiated a restart 
+        # Event log service stoped
         {($_ -eq 42) -or ($_ -eq 1074) -or ($_ -eq 6006)} { 
             if ($startEvent) {
                 $shutdownEvent = $event
-                $shutdownType = if ($event.Id -eq 42) {"Sleep Mode"} else {"User Initiated"}
+                $shutdownType = if ($event.Id -eq 42) {
+                    "Sleep Mode"
+                } else {
+                    "User Initiated"
+                }
+                if ($event.Id -eq 1074) {
+                    # Extracting parameter values
+                    $shutdownreason = $event.Properties[2].Value
+                    $shutdownOrRestart = $event.Properties[4].Value
+                    $shutdownType = "$shutdownOrRestart - $shutdownreason"
+                }
                 $systemActivity += [PSCustomObject]@{
                     StartTime    = $startEvent.TimeCreated.ToUniversalTime()
                     ShutdownTime = $shutdownEvent.TimeCreated.ToUniversalTime()
