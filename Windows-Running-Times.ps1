@@ -17,6 +17,9 @@ foreach ($event in $events) {
         # Startups 
         {($_ -eq 1) -or ($_ -eq 41) -or ($_ -eq 6005)} {
             if ($startEvent) {
+                if ($event.TimeCreated - $startEvent.TimeCreated -lt [TimeSpan]::FromMinutes(1)) {
+                    continue
+                }
                 $systemActivity += [PSCustomObject]@{
                     StartTime    = $startEvent.TimeCreated.ToUniversalTime()
                     ShutdownTime = $null
@@ -58,3 +61,5 @@ if ($startEvent -and -not $shutdownEvent) {
 }
 
 $systemActivity | Sort-Object StartTime -Descending | Format-Table -AutoSize
+
+
