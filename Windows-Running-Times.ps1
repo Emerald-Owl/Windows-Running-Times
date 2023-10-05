@@ -27,7 +27,7 @@ $eventsKernelPower = Get-WinEvent -FilterHashtable @{
     Id = 41,42;
     StartTime=$startDateTime;
     EndTime=$endDateTime;
-}
+} -ErrorAction SilentlyContinue
 
 # Get events with Provider 'Microsoft-Windows-Power-Troubleshooter' and EventID 1
 $eventsPowerTroubleshooter = Get-WinEvent -FilterHashtable @{
@@ -36,7 +36,7 @@ $eventsPowerTroubleshooter = Get-WinEvent -FilterHashtable @{
     Id = 1;
     StartTime=$startDateTime;
     EndTime=$endDateTime;
-}
+} -ErrorAction SilentlyContinue
 
 # Get events with Provider 'USER32' and EventID 1074
 $eventsUser32 = Get-WinEvent -FilterHashtable @{
@@ -45,7 +45,7 @@ $eventsUser32 = Get-WinEvent -FilterHashtable @{
     Id = 1074;
     StartTime=$startDateTime;
     EndTime=$endDateTime;
-}
+} -ErrorAction SilentlyContinue
 
 # Get events with Provider 'EventLog' and EventID 6005 or 6006
 $eventsEventLog = Get-WinEvent -FilterHashtable @{
@@ -54,7 +54,7 @@ $eventsEventLog = Get-WinEvent -FilterHashtable @{
     Id = 6005, 6006;
     StartTime=$startDateTime;
     EndTime=$endDateTime;
-}
+} -ErrorAction SilentlyContinue
 
 $systemActivity = @()
 $startEvent = $null
